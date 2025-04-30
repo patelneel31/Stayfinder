@@ -1,0 +1,154 @@
+<% layout("/layouts/boilerplate") %>
+
+    <!-- Map Token Script -->
+    <script>
+
+    const mapToken = "<%= process.env.MAP_TOKEN %>";
+    const listing = <%- JSON.stringify(listing) %>;
+
+    </script>
+
+
+    <body class="container py-4">
+
+        <h3 class="text-primary">Listing Details:</h3>
+
+        <div class="card shadow-lg custom-card">
+            <img src="<%= listing.image && listing.image.url ? listing.image.url : 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGdvYXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60' %>"
+                class="card-img-top" alt="listing-image">
+            <div class="card-body">
+                <p class="card-text fs-5 fw-bold">
+                    <%= listing.title %>
+                </p>
+            </div>
+        </div>
+
+        <!-- Listing Info -->
+        <ul class="list-group my-4 custom-list">
+            <li class="list-group-item bg-warning-subtle border border-warning rounded-3 fw-bold text-dark">
+                <strong>Owner:</strong>
+                <%= listing.owner.username %>
+            </li>
+            <li class="list-group-item"><strong>Title:</strong>
+                <%= listing.title %>
+            </li>
+            <li class="list-group-item"><strong>Description:</strong>
+                <%= listing.description %>
+            </li>
+            <li class="list-group-item"><strong>Price:</strong> $<%= listing.price.toLocaleString("en-US") %>
+            </li>
+            <li class="list-group-item"><strong>Location:</strong>
+                <%= listing.location %>
+            </li>
+            <li class="list-group-item"><strong>Country:</strong>
+                <%= listing.country %>
+            </li>
+        </ul>
+
+        <!-- Edit/Delete Buttons (only for listing owner) -->
+        <div class="d-flex gap-3">
+            <a href="/listings/<%= listing._id %>/edit" class="btn btn-warning">Edit this Listing</a>
+            <form method="POST" action="/listings/<%= listing._id %>?_method=DELETE">
+                <button type="submit" class="btn btn-danger">Delete this listing</button>
+            </form>
+        </div>
+
+        <!-- Leave Review (only if logged in) -->
+        <% if (currentUser) { %>
+            <div class="col-md-8 offset-md-2 my-4">
+                <h4 class="mb-4">Leave a Review</h4>
+                <form action="/listings/<%= listing._id %>/reviews" method="POST" novalidate class="needs-validation">
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Rating (1 to 5)</label>
+                        <input type="range" min="1" max="5" id="rating" name="review[rating]" class="form-range"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Comment</label>
+                        <textarea name="review[comment]" id="comment" cols="30" rows="5" class="form-control" required
+                            placeholder="Write your review here..."></textarea>
+                        <div class="invalid-feedback">
+                            Please add some comments for your review.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </form>
+            </div>
+            <% } %>
+
+                <!-- All Reviews Section -->
+                <div class="my-4">
+                    <h3 class="mb-4 text-center text-primary">All Reviews</h3>
+
+                    <!-- Overall Rating -->
+                    <% if (listing.reviews.length> 0) {
+                        let total = 0;
+                        for (let review of listing.reviews) {
+                        total += review.rating;
+                        }
+                        let avgRating = (total / listing.reviews.length).toFixed(1);
+                        %>
+                        <div class="text-center mb-4">
+                            <h5>Overall Rating:
+                                <span class="text-warning">
+                                    <%= avgRating %> ★
+                                </span>
+                                / 5
+                            </h5>
+                        </div>
+                        <% } %>
+
+                            <% if (listing.reviews.length===0) { %>
+                                <div class="alert alert-info text-center">
+                                    No reviews yet. Be the first to leave one!
+                                </div>
+                                <% } %>
+
+                                    <div class="row row-cols-1 row-cols-md-4 g-2">
+                                        <% for (let review of listing.reviews) { %>
+                                            <div class="col">
+                                                <div class="card border shadow rounded-4 h-100">
+                                                    <div
+                                                        class="card-body d-flex flex-column justify-content-between p-3">
+                                                        <h5 class="card-title">
+                                                            @<%= review.author ? review.author.username : "Unknown" %>
+                                                        </h5>
+                                                        <div class="mb-3">
+                                                            <% for (let i=0; i < review.rating; i++) { %>
+                                                                <span class="text-warning fs-5">★</span>
+                                                                <% } %>
+                                                                    <% for (let i=review.rating; i < 5; i++) { %>
+                                                                        <span class="text-muted fs-5">☆</span>
+                                                                        <% } %>
+                                                        </div>
+                                                        <p class="card-text text-muted fst-italic flex-grow-1">
+                                                            "<%= review.comment %>"
+                                                        </p>
+
+                                                        <% if (currentUser && (listing.owner._id.equals(currentUser._id)
+                                                            || review.author._id.equals(currentUser._id))) { %>
+                                                            <!-- Allow listing owner or the author of the review to delete it -->
+                                                            <form
+                                                                action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE"
+                                                                method="POST">
+                                                                <button type="submit"
+                                                                    class="btn btn-danger btn-sm mt-3 w-100">
+                                                                    Delete Review
+                                                                </button>
+                                                            </form>
+                                                            <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% } %>
+                                    </div>
+                </div>
+                <!-- //map -->
+                <h3> Where you'll be</h3>
+                <div id="map"></div>
+
+
+                <script src="/js/map.js"></script>
+    </body>
